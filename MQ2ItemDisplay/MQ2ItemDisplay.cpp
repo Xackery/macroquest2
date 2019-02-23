@@ -27,6 +27,8 @@ PreSetup("MQ2ItemDisplay");
 #include "ISXEQItemDisplay.h"
 #endif
 using namespace std;
+CHAR ConvertFrom[2048] = { 0 };
+CHAR ConvertTo[2048] = { 0 };
 bool bDisabledComparetip = false;
 bool gCompareTip = false;
 bool gLootButton = true;
@@ -259,7 +261,17 @@ public:
 	};
 	~ItemInfoManager()
 	{
-		this->GetInstance().htmlwnd->SetClientCallbacks(NULL);
+		ItemInfoManager *im = &this->GetInstance();
+		if (im) {
+			if (im->htmlwnd)
+			{
+				im->htmlwnd->SetClientCallbacks(NULL);
+			}
+		}
+		//this->GetInstance().htmlwnd->SetClientCallbacks(NULL);
+		//if(this->htmlwnd)
+		//	this->htmlwnd->SetClientCallbacks(NULL);
+		//GetInstance().htmlwnd->SetClientCallbacks(NULL);
 		//this->GetInstance().htmlwnd->RemoveObserver(this);
 		Sleep(0);
 	};
@@ -1852,6 +1864,44 @@ void ItemDisplayCmd(PSPAWNINFO pChar, PCHAR szLine)
 		WritePrivateProfileString("Settings","CompareTip",szArg1,INIFileName);
 	}
 }
+
+void RequestConvertItem(PSPAWNINFO pSpawn, PCHAR szLine)
+{
+#if defined(ROF2EMU) || defined(UFEMU)
+	WriteChatf("This is not supported on EMUs");
+#else
+	if (szLine && szLine[0] != '\0')
+	{
+		GetArg(ConvertFrom, szLine, 1);
+		//GetArg(ConvertTo, szLine, 3);
+		if (PCONTENTS pCont = FindItemByName(ConvertFrom))
+		{
+			if (PITEMINFO pItem = GetItemFromContents(pCont))
+			{
+				//if (ConvertTo[0]) {
+				//	WriteChatf("Trying to convert %s to %s", pItem->Name, ConvertTo);
+				//}
+				if (CItemDisplayManager*mgr = pItemDisplayManager) {
+					int index = mgr->FindWindowA(true);
+					if (index == -1) {
+						index = mgr->CreateWindowInstance();
+					}
+					if (index > -1 && index < mgr->pWindows.Count) {
+						if (PEQITEMWINDOW itemdis = (PEQITEMWINDOW)mgr->pWindows[index]) {
+							CItemDisplayWnd*citemdisp = (CItemDisplayWnd*)itemdis;
+							citemdisp->SetItem(&pCont, 0);
+							citemdisp->RequestConvertItem();
+						}
+					}
+				}
+			}
+			return;
+		}
+	}
+	WriteChatf("\agUSAGE:\ax /convertitem \ay\"<item name>\"\ax");
+	WriteChatf("\agEaxmple:\ax /convertitem \ay\"Wishing Lamp:\"\ax");
+#endif
+}
 void AddLootFilter(PSPAWNINFO pChar, PCHAR szLine)
 {
 #if defined(ROF2EMU) || defined(UFEMU)
@@ -3042,6 +3092,7 @@ PLUGIN_API VOID InitializePlugin(VOID)
 
 	
     AddCommand("/itemdisplay",ItemDisplayCmd); 
+    AddCommand("/convertitem",RequestConvertItem); 
     AddCommand("/addlootfilter",AddLootFilter); 
     AddCommand("/insertaug",InsertAug); 
     AddCommand("/removeaug",RemoveAug); 
@@ -3134,6 +3185,7 @@ PLUGIN_API VOID ShutdownPlugin(VOID)
 	RemoveCommand("/iScore");
 	RemoveCommand("/GearScore");
 	RemoveCommand("/addlootfilter");
+	RemoveCommand("/convertitem");
 	RemoveCommand("/itemdisplay");
 	
 	delete pDisplayItemType;
@@ -3168,22 +3220,25 @@ PLUGIN_API void OnReloadUI()
 		CreateCompareTipWnd();
 	}
 }
-#define LINK_LEN 55
+#if !defined(ROF2EMU) && !defined(UFEMU)
+// starting position of link text found in MQ2Web__ParseItemLink_x
+#define LINK_LEN 0x5A
+#else
+#define LINK_LEN 0x37
+#endif
 
 PLUGIN_API DWORD OnIncomingChat(PCHAR Line, DWORD Color) 
 {
 	if (ClickGroup || ClickGuild || ClickRaid || ClickAny) 
 	{
-		char szText[MAX_STRING];
-		char szStart[MAX_STRING];
-		char szCommand[MAX_STRING];
-		char *p;
-		int  doLink = 0;
-
-		
-		sprintf_s(szStart,"%c%c",0x12,0x30);
-		p = strstr(Line,szStart);
-		if (!p) return 0;
+		char *szStart = new char[MAX_STRING];
+		sprintf_s(szStart,MAX_STRING,"%c%c",0x12,0x30);
+		char *p = strstr(Line,szStart);
+		delete szStart;
+		if (!p) {
+			return 0;
+		}
+		int  doLink = 0;	
 
 		if (ClickAny) doLink = 1;
 		if (!doLink && ClickGroup && ( strstr(Line,"tells the group") || strstr(Line,"tell your party"))) doLink = 1;
@@ -3192,20 +3247,14 @@ PLUGIN_API DWORD OnIncomingChat(PCHAR Line, DWORD Color)
 
 		if (doLink && p && strlen(p)>LINK_LEN+2)
 		{
+			char *szText = new char[MAX_STRING];
 			memset(szText,0,100);
-			strncpy_s(szText,p+2,LINK_LEN);
-			sprintf_s(szCommand, "/notify ChatWindow CW_ChatOutput link %s", szText);
+			strncpy_s(szText,MAX_STRING,p+2,LINK_LEN);
+			char *szCommand = new char[MAX_STRING];
+			sprintf_s(szCommand,MAX_STRING, "/notify ChatWindow CW_ChatOutput link %s", szText);
+			delete szText;
 			DoCommand(((PSPAWNINFO)pLocalPlayer), szCommand);
-			
-			/* 
-			WriteChatf("OnIncomingChat::Cmd = %s",Line);
-			int i;
-			for (i=0; Line[i]; i++)
-				WriteChatf("Line[%d] = 0x%02X = %c ",i,Line[i],Line[i]);
-			WriteChatf("OnIncomingChat::Cmd = %s",szCommand);
-			for (i=0; szText[i]; i++)
-				WriteChatf("szText[%d] = 0x%02X = %c ",i,szText[i],szText[i]);
-			*/
+			delete szCommand;
 		}
 	}
     return 0; 
@@ -3216,5 +3265,9 @@ PLUGIN_API VOID OnPulse(VOID)
 	{
 		CreateCompareTipWnd();
 	}
+}
+PLUGIN_API VOID OnBeginZone(VOID)
+{
+	memset(&g_Contents, 0x0, sizeof(CONTENTS)*6);
 }
 #endif

@@ -2048,9 +2048,6 @@ FUNCTION_AT_ADDRESS(void  CInvSlotMgr::SelectSlot(class CInvSlot *),CInvSlotMgr_
 #ifdef CInvSlotMgr__UpdateSlots_x
 FUNCTION_AT_ADDRESS(void  CInvSlotMgr::UpdateSlots(void),CInvSlotMgr__UpdateSlots);
 #endif
-#ifdef CItemDisplayWnd__CItemDisplayWnd_x
-FUNCTION_AT_ADDRESS( CItemDisplayWnd::CItemDisplayWnd(class CXWnd *),CItemDisplayWnd__CItemDisplayWnd);
-#endif
 #ifdef CItemDisplayWnd__UpdateStrings_x
 FUNCTION_AT_ADDRESS(void  CItemDisplayWnd::UpdateStrings(void),CItemDisplayWnd__UpdateStrings);
 #endif
@@ -2059,6 +2056,15 @@ FUNCTION_AT_ADDRESS(void CItemDisplayWnd::InsertAugmentRequest(int AugSlot),CIte
 #endif
 #ifdef CItemDisplayWnd__RemoveAugmentRequest_x
 FUNCTION_AT_ADDRESS(void CItemDisplayWnd::RemoveAugmentRequest(int AugSlot),CItemDisplayWnd__RemoveAugmentRequest);
+#endif
+#ifdef CItemDisplayWnd__RequestConvertItem_x
+FUNCTION_AT_ADDRESS(void CItemDisplayWnd::RequestConvertItem(void),CItemDisplayWnd__RequestConvertItem);
+#endif
+#ifdef CItemDisplayWnd__CItemDisplayWnd_x
+FUNCTION_AT_ADDRESS(CItemDisplayWnd::CItemDisplayWnd(CXWnd *),CItemDisplayWnd__CItemDisplayWnd);
+#endif
+#ifdef CItemDisplayWnd__dCItemDisplayWnd_x
+FUNCTION_AT_ADDRESS(CItemDisplayWnd::~CItemDisplayWnd(),CItemDisplayWnd__dCItemDisplayWnd);
 #endif
 #ifdef CItemDisplayWnd__SetItem_x
 FUNCTION_AT_ADDRESS(void CItemDisplayWnd::SetItem(PCONTENTS *pCont, int flags),CItemDisplayWnd__SetItem);
@@ -4630,9 +4636,9 @@ FUNCTION_AT_ADDRESS(int  EQ_Character::GetLastEffectSlot(bool),EQ_Character__Get
 #endif
 #ifdef CharacterZoneClient__IsStackBlocked_x
 #if !defined(ROF2EMU) && !defined(UFEMU)
-FUNCTION_AT_ADDRESS(bool CharacterZoneClient::IsStackBlocked(const EQ_Spell *, CharacterZoneClient*, EQ_Affect*, int, bool), CharacterZoneClient__IsStackBlocked);
+FUNCTION_AT_ADDRESS(bool CharacterZoneClient::IsStackBlocked(const EQ_Spell *, PSPAWNINFO, EQ_Affect*, int, bool), CharacterZoneClient__IsStackBlocked);
 #else
-FUNCTION_AT_ADDRESS(bool CharacterZoneClient::IsStackBlocked(const EQ_Spell *, CharacterZoneClient*, EQ_Affect*,int),CharacterZoneClient__IsStackBlocked);
+FUNCTION_AT_ADDRESS(bool CharacterZoneClient::IsStackBlocked(const EQ_Spell *, PSPAWNINFO, EQ_Affect*,int),CharacterZoneClient__IsStackBlocked);
 #endif
 #endif
 #ifdef CharacterZoneClient__CanUseMemorizedSpellSlot_x
@@ -5421,11 +5427,11 @@ FUNCTION_AT_ADDRESS(bool EQPlayer::CanSee(CVector3 *pos), EQPlayer__CanSee1);
 FUNCTION_AT_ADDRESS(unsigned int  EQPlayer::ModifyAttackSpeed(unsigned int,int),EQPlayer__ModifyAttackSpeed);
 #endif
 #ifdef EQPlayer__DoAttack_x
-#if defined(ROF2EMU) || defined(UFEMU)
-FUNCTION_AT_ADDRESS(int EQPlayer::DoAttack(BYTE,BYTE,EQPlayer *),EQPlayer__DoAttack);
-#else
-FUNCTION_AT_ADDRESS(int EQPlayer::DoAttack(BYTE,BYTE,EQPlayer *,bool,bool),EQPlayer__DoAttack);
-#endif
+	#if defined(ROF2EMU) || defined(UFEMU)
+		FUNCTION_AT_ADDRESS(bool EQPlayer::DoAttack(BYTE,BYTE,EQPlayer *),EQPlayer__DoAttack);
+	#else
+		FUNCTION_AT_ADDRESS(bool EQPlayer::DoAttack(BYTE,BYTE,EQPlayer *,bool,bool,bool),EQPlayer__DoAttack);
+	#endif
 #endif
 #ifdef EQPlayer__HandleAmmo_x
 FUNCTION_AT_ADDRESS(unsigned char  EQPlayer::HandleAmmo(void),EQPlayer__HandleAmmo);
